@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommender System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+            padding: 4rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+
+        .search-area {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            padding: 2.5rem;
+            border-radius: 2rem;
+            max-width: 700px;
+            margin: 0 auto 4rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        select {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: #1e293b;
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            appearance: none;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1.1rem 2.5rem;
+            border-radius: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 15px -3px var(--accent-glow);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        .recommendations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .recommendations.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .movie-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            transition: all 0.4s;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+            border-color: var(--accent);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .poster-container {
+            position: relative;
+            padding-top: 150%;
+            overflow: hidden;
+        }
+
+        .poster-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s;
+        }
+
+        .movie-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .movie-info {
+            padding: 1.25rem;
+        }
+
+        .movie-title {
+            font-weight: 600;
+            font-size: 1rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .loader {
+            display: none;
+            margin: 2rem auto;
+            width: 48px;
+            height: 48px;
+            border: 5px solid var(--glass);
+            border-bottom-color: var(--accent);
+            border-radius: 50%;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 2.5rem; }
+            .search-area { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Movie Recommender</h1>
+        <p class="subtitle">Discover your next favorite movie</p>
+
+        <div class="search-area">
+            <select id="movie-select">
+                <option value="" disabled selected>Select a movie you like...</option>
+            </select>
+            <button id="recommend-btn">Get Recommendations</button>
+        </div>
+
+        <div id="loader" class="loader"></div>
+        <div id="recommendations" class="recommendations"></div>
+    </div>
+
+    <script>
+        const movieSelect = document.getElementById('movie-select');
+        const recommendBtn = document.getElementById('recommend-btn');
+        const recommendationsGrid = document.getElementById('recommendations');
+        const loader = document.getElementById('loader');
+
+        // Fetch all movies for the dropdown
+        async function fetchMovies() {
+            try {
+                const response = await fetch('/api/movies');
+                const movies = await response.json();
+                movies.forEach(title => {
+                    const option = document.createElement('option');
+                    option.value = title;
+                    option.textContent = title;
+                    movieSelect.appendChild(option);
+                });
+            } catch (err) {
+                console.error("Failed to fetch movies", err);
+            }
+        }
+
+        recommendBtn.addEventListener('click', async () => {
+            const selectedMovie = movieSelect.value;
+            if (!selectedMovie) return;
+
+            recommendBtn.disabled = true;
+            recommendationsGrid.classList.remove('visible');
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/recommend?movie=${encodeURIComponent(selectedMovie)}`);
+                const data = await response.json();
+                
+                recommendationsGrid.innerHTML = '';
+                data.names.forEach((name, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.innerHTML = `
+                        <div class="poster-container">
+                            <img src="${data.posters[i]}" alt="${name}" loading="lazy">
+                        </div>
+                        <div class="movie-info">
+                            <h3 class="movie-title">${name}</h3>
+                        </div>
+                    `;
+                    recommendationsGrid.appendChild(card);
+                });
+
+                loader.style.display = 'none';
+                recommendationsGrid.classList.add('visible');
+            } catch (err) {
+                console.error("Failed to get recommendations", err);
+                loader.style.display = 'none';
+            } finally {
+                recommendBtn.disabled = false;
+            }
+        });
+
+        fetchMovies();
+    </script>
+</body>
+</html>
