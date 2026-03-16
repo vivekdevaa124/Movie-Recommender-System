@@ -1,5 +1,7 @@
-*.pkl
+similarity.pkl
 __pycache__/
 .streamlit/
 .env
+*.csv
+rebuild_model.py
 test_tmdb.py

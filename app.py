@@ -37,27 +37,29 @@ import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+@st.cache_resource
 def load_data():
-    if os.path.exists('movie_list.pkl') and os.path.exists('similarity.pkl'):
+    if os.path.exists('movie_list.pkl'):
         movies = pickle.load(open('movie_list.pkl','rb'))
-        similarity = pickle.load(open('similarity.pkl','rb'))
     else:
-        st.info("Generating recommendation model from CSV data... This may take a minute.")
-        try:
-            # If pkl is missing, we must use CSVs
-            if not os.path.exists('tmdb_5000_movies.csv') or not os.path.exists('tmdb_5000_credits.csv'):
-                st.error("Source CSV files are missing!")
-                return None, None
-            
-            # Run the rebuild script
-            import subprocess
-            subprocess.run(["python", "rebuild_model.py"])
-            
-            movies = pickle.load(open('movie_list.pkl','rb'))
-            similarity = pickle.load(open('similarity.pkl','rb'))
-        except Exception as e:
-            st.error(f"Failed to generate model: {e}")
+        # Fallback to CSV processing if pkl is missing (can be slow on Vercel)
+        if not os.path.exists('tmdb_5000_movies.csv') or not os.path.exists('tmdb_5000_credits.csv'):
+            st.error("Data files (movie_list.pkl or CSVs) are missing!")
             return None, None
+        
+        st.info("Generating model from CSVs... (First time only)")
+        # Import the rebuild logic directly if we can't find pkl
+        try:
+            import rebuild_model # This will run the script on import
+            movies = pickle.load(open('movie_list.pkl','rb'))
+        except Exception as e:
+            st.error(f"Rebuild failed: {e}")
+            return None, None
+            
+    # Always calculate similarity in memory to avoid huge file storage
+    cv = CountVectorizer(max_features=5000, stop_words='english')
+    vectors = cv.fit_transform(movies['tags']).toarray()
+    similarity = cosine_similarity(vectors)
     return movies, similarity
 
 st.header('Movie Recommender System')
