@@ -1,0 +1,6 @@
+*.pkl
+*.csv
+__pycache__/
+.streamlit/
+.env
+test_tmdb.py
