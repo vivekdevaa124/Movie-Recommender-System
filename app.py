@@ -38,9 +38,16 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 def load_data():
-    if os.path.exists('movie_list.pkl') and os.path.exists('similarity.pkl'):
+    if os.path.exists('movie_list.pkl'):
         movies = pickle.load(open('movie_list.pkl','rb'))
-        similarity = pickle.load(open('similarity.pkl','rb'))
+        
+        if os.path.exists('similarity.pkl'):
+            similarity = pickle.load(open('similarity.pkl','rb'))
+        else:
+            st.info("Calculating similarity matrix in memory... Please wait.")
+            cv = CountVectorizer(max_features=5000, stop_words='english')
+            vectors = cv.fit_transform(movies['tags']).toarray()
+            similarity = cosine_similarity(vectors)
     else:
         st.info("Generating recommendation model from CSV data... This may take a minute.")
         try:
@@ -54,7 +61,9 @@ def load_data():
             subprocess.run(["python", "rebuild_model.py"])
             
             movies = pickle.load(open('movie_list.pkl','rb'))
-            similarity = pickle.load(open('similarity.pkl','rb'))
+            cv = CountVectorizer(max_features=5000, stop_words='english')
+            vectors = cv.fit_transform(movies['tags']).toarray()
+            similarity = cosine_similarity(vectors)
         except Exception as e:
             st.error(f"Failed to generate model: {e}")
             return None, None

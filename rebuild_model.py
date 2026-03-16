@@ -84,6 +84,6 @@ similarity = cosine_similarity(vectors)
 
 # Save
 pickle.dump(new_df, open('movie_list.pkl', 'wb'))
-pickle.dump(similarity, open('similarity.pkl', 'wb'))
+# pickle.dump(similarity, open('similarity.pkl', 'wb')) # Skipping this to save space on Vercel
 
 print("Model rebuilt successfully!")
