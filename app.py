@@ -32,9 +32,41 @@ def recommend(movie):
     return recommended_movie_names,recommended_movie_posters
 
 
+import os
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+def load_data():
+    if os.path.exists('movie_list.pkl') and os.path.exists('similarity.pkl'):
+        movies = pickle.load(open('movie_list.pkl','rb'))
+        similarity = pickle.load(open('similarity.pkl','rb'))
+    else:
+        st.info("Generating recommendation model from CSV data... This may take a minute.")
+        try:
+            # If pkl is missing, we must use CSVs
+            if not os.path.exists('tmdb_5000_movies.csv') or not os.path.exists('tmdb_5000_credits.csv'):
+                st.error("Source CSV files are missing!")
+                return None, None
+            
+            # Run the rebuild script
+            import subprocess
+            subprocess.run(["python", "rebuild_model.py"])
+            
+            movies = pickle.load(open('movie_list.pkl','rb'))
+            similarity = pickle.load(open('similarity.pkl','rb'))
+        except Exception as e:
+            st.error(f"Failed to generate model: {e}")
+            return None, None
+    return movies, similarity
+
 st.header('Movie Recommender System')
-movies = pickle.load(open('movie_list.pkl','rb'))
-similarity = pickle.load(open('similarity.pkl','rb'))
+
+movies, similarity = load_data()
+
+if movies is None or similarity is None:
+    st.warning("Please ensure tmdb_5000_movies.csv and tmdb_5000_credits.csv are present.")
+    st.stop()
 
 movie_list = movies['title'].values
 selected_movie = st.selectbox(
