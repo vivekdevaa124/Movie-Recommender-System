@@ -1,4 +1,4 @@
-*.pkl
+similarity.pkl
 __pycache__/
 .streamlit/
 .env
