@@ -1,18 +1,23 @@
 import os
 import pickle
-import pandas as pd
 import requests
 from flask import Flask, request, jsonify, render_template
 
-app = Flask(__name__, template_folder='../templates', static_folder='../static')
+# Resolve paths relative to this file so they work on Vercel serverless
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+
+app = Flask(__name__, template_folder=os.path.join(ROOT_DIR, 'templates'))
 
 # Load data on startup
-MOVIES_PKL = 'movie_list.pkl'
+MOVIES_PKL = os.path.join(ROOT_DIR, 'movie_list.pkl')
 
 def load_data():
     if os.path.exists(MOVIES_PKL):
-        movies = pickle.load(open(MOVIES_PKL, 'rb'))
+        with open(MOVIES_PKL, 'rb') as f:
+            movies = pickle.load(f)
         return movies
+    print(f"WARNING: {MOVIES_PKL} not found")
     return None
 
 movies_df = load_data()
@@ -33,20 +38,19 @@ def fetch_poster(movie_id):
 def get_recommendations(movie_title):
     if movies_df is None:
         return [], []
-    
+
     try:
-        idx = movies_df[movies_df['title'] == movie_title].index[0]
-        
-        # Calculate similarity in memory (same logic as Streamlit app)
         from sklearn.feature_extraction.text import CountVectorizer
         from sklearn.metrics.pairwise import cosine_similarity
-        
+
+        idx = movies_df[movies_df['title'] == movie_title].index[0]
+
         cv = CountVectorizer(max_features=5000, stop_words='english')
         vectors = cv.fit_transform(movies_df['tags']).toarray()
         similarity = cosine_similarity(vectors)
-        
+
         distances = sorted(list(enumerate(similarity[idx])), reverse=True, key=lambda x: x[1])
-        
+
         names = []
         posters = []
         for i in distances[1:7]:
@@ -73,7 +77,7 @@ def recommend():
     movie = request.args.get('movie')
     if not movie:
         return jsonify({"error": "No movie provided"}), 400
-    
+
     names, posters = get_recommendations(movie)
     return jsonify({"names": names, "posters": posters})
 
